@@ -1,0 +1,59 @@
+# Visual Studio Makefile for httpfileserv
+# To use this file: nmake /f Makefile.msvc
+
+# Compiler and flags
+CC = cl
+CFLAGS = /nologo /W3 /O2 /I".\include" /D_CRT_SECURE_NO_WARNINGS
+
+# Target binary
+TARGET = httpfileserv.exe
+
+# Directories
+SRC_DIR = src
+INCLUDE_DIR = include
+OBJ_DIR = obj
+BIN_DIR = bin
+
+# Source files
+SRCS = $(SRC_DIR)\httpfileserv.c \
+       $(SRC_DIR)\utils.c \
+       $(SRC_DIR)\platform\platform.c
+
+# Object files
+OBJS = $(OBJ_DIR)\httpfileserv.obj \
+       $(OBJ_DIR)\utils.obj \
+       $(OBJ_DIR)\platform.obj
+
+# Libraries
+LIBS = ws2_32.lib
+
+# Default target
+all: prepare $(BIN_DIR)\$(TARGET)
+
+# Prepare directories
+prepare:
+    @if not exist $(BIN_DIR) mkdir $(BIN_DIR)
+    @if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
+
+# Linking
+$(BIN_DIR)\$(TARGET): $(OBJS)
+    $(CC) $(CFLAGS) /Fe$@ $** $(LIBS)
+
+# Compiling
+$(OBJ_DIR)\httpfileserv.obj: $(SRC_DIR)\httpfileserv.c
+    $(CC) $(CFLAGS) /c /Fo$@ $**
+
+$(OBJ_DIR)\utils.obj: $(SRC_DIR)\utils.c
+    $(CC) $(CFLAGS) /c /Fo$@ $**
+
+$(OBJ_DIR)\platform.obj: $(SRC_DIR)\platform\platform.c
+    $(CC) $(CFLAGS) /c /Fo$@ $**
+
+# Clean
+clean:
+    @if exist $(OBJ_DIR)\*.obj del $(OBJ_DIR)\*.obj
+    @if exist $(BIN_DIR)\$(TARGET) del $(BIN_DIR)\$(TARGET)
+
+# Run
+run: $(BIN_DIR)\$(TARGET)
+    $(BIN_DIR)\$(TARGET) .

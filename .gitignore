@@ -1,40 +1,24 @@
-# Prerequisites
-*.d
-
-# Object files
+# Build artifacts
+bin/
+obj/
 *.o
-*.ko
 *.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
 *.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+*.so
+*.dll
+*.a
+*.lib
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS-specific files
+.DS_Store
+Thumbs.db
 
 # Debug files
 *.dSYM/
@@ -42,11 +26,12 @@
 *.idb
 *.pdb
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# Dependencies
+node_modules/
+vendor/
+
+# Temporary build scripts
+build_helper.bat
+build_win32.bat
+test_compile.bat
+run_win32.bat
