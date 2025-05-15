@@ -62,7 +62,7 @@ void platform_cleanup(void) {
  * @param count Number of bytes to transfer
  * @return Number of bytes sent, or -1 on error
  */
-ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
+ssize_t platform_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
     char buffer[8192];  /* Buffer for reading file data - 8KB is a common efficient buffer size */
     ssize_t total_sent = 0;
     size_t remaining = count;

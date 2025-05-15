@@ -5,7 +5,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <sys/sendfile.h>
+#include <sys/stat.h>  /* For S_ISDIR */
+#include <limits.h>    /* For PATH_MAX */
+#include <signal.h>    /* For signal handling */
 #include <errno.h>
 
 /**
@@ -13,7 +15,9 @@
  */
 
 int platform_init(void) {
-    // No initialization needed on Unix-like systems
+    // Set up signal handling to ignore SIGPIPE
+    // This prevents the program from crashing when writing to a closed socket
+    signal(SIGPIPE, SIG_IGN);
     return 0;
 }
 
@@ -21,7 +25,45 @@ void platform_cleanup(void) {
     // No cleanup needed on Unix-like systems
 }
 
-// Note: sendfile is already provided by system headers on Unix platforms
+// On Unix, we need to implement the platform sendfile function
+// We need a custom implementation to avoid conflicts with the system sendfile
+ssize_t platform_sendfile(int out_fd, int in_fd, off_t *offset, size_t count) {
+    // For WSL and other Unix systems, we'll use a simple read/write implementation
+    // to avoid issues with the system sendfile function
+    char buffer[8192];
+    ssize_t total_sent = 0;
+    size_t remaining = count;
+    ssize_t bytes_read, bytes_sent;
+
+    if (offset && *offset) {
+        if (lseek(in_fd, *offset, SEEK_SET) == -1) {
+            return -1;
+        }
+    }
+
+    while (remaining > 0) {
+        bytes_read = read(in_fd, buffer, sizeof(buffer) < remaining ? sizeof(buffer) : remaining);
+        if (bytes_read <= 0) {
+            if (bytes_read < 0) printf("[ERROR] Read error: %s\n", strerror(errno));
+            break;
+        }
+
+        bytes_sent = write(out_fd, buffer, bytes_read);
+        if (bytes_sent <= 0) {
+            if (bytes_sent < 0) printf("[ERROR] Write error: %s\n", strerror(errno));
+            return -1;
+        }
+
+        total_sent += bytes_sent;
+        remaining -= bytes_sent;
+
+        if (offset) {
+            *offset += bytes_sent;
+        }
+    }
+
+    return total_sent;
+}
 
 int platform_list_directory(const char* path, dir_entry_callback callback, void* user_data) {
     DIR* dir;

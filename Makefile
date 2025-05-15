@@ -5,11 +5,19 @@ CC = gcc
 CFLAGS = -Wall -Wextra -O2
 LDFLAGS =
 
+# Check if running on WSL
+ifeq ($(shell uname -a | grep -i microsoft),)
+    ON_WSL = 0
+else
+    ON_WSL = 1
+    CFLAGS += -D_GNU_SOURCE -DWSL
+endif
+
 # Platform-specific settings
 ifeq ($(OS),Windows_NT)
     # Windows settings
-    PLATFORM_SRC = src/platform/windows/platform_win.c
-    PLATFORM_OBJ = obj/platform/windows/platform_win.o
+    PLATFORM_SRC = src/platform/windows/platform_windows.c
+    PLATFORM_OBJ = obj/platform/windows/platform_windows.o
     LDFLAGS += -lws2_32
     EXE = bin/httpfileserv.exe
     MKDIR = mkdir -p
@@ -18,20 +26,27 @@ else
     # Unix settings
     PLATFORM_SRC = src/platform/unix/platform_unix.c
     PLATFORM_OBJ = obj/platform/unix/platform_unix.o
+    CFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE
     EXE = bin/httpfileserv
     MKDIR = mkdir -p
     RM = rm -f
 endif
 
 # Source files
-SRC = src/httpfileserv.c src/http_response.c src/template.c
+SRC = src/httpfileserv.c src/http_response.c src/template.c src/utils.c src/platform/platform.c src/httpfileserv_lib.c
 OBJ = $(SRC:src/%.c=obj/%.o)
 
 # Include directories
-INCLUDES = -Isrc
+INCLUDES = -Iinclude
 
 # Default target
-all: $(EXE)
+all: setup $(EXE)
+
+# Setup directories
+setup:
+	$(MKDIR) bin
+	$(MKDIR) obj/platform/windows
+	$(MKDIR) obj/platform/unix
 
 # Link the executable
 $(EXE): $(OBJ) $(PLATFORM_OBJ)
@@ -51,6 +66,7 @@ $(PLATFORM_OBJ): $(PLATFORM_SRC)
 # Clean up
 clean:
 	$(RM) $(OBJ) $(PLATFORM_OBJ) $(EXE)
+	$(RM) -r obj bin
 
 # Run the server
 run: $(EXE)
@@ -74,4 +90,4 @@ help:
 	@echo "  $(EXE) <directory_path>    - Serve the specified directory"
 
 # Phony targets
-.PHONY: all clean run help
+.PHONY: all clean run help setup

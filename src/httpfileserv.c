@@ -222,6 +222,8 @@ int main(int argc, char* argv[]) {
             printf("[ERROR] Failed to close client socket: %d\n", WSAGetLastError());
         }
         #else
+        // On Unix, we need to use shutdown() before close() to ensure all data is sent
+        shutdown(client_fd, SHUT_RDWR);  // Shutdown both reading and writing
         if (close(client_fd) < 0) {
             perror("Failed to close client socket");
         }
@@ -237,6 +239,7 @@ int main(int argc, char* argv[]) {
     #ifdef _WIN32
     closesocket(server_fd);
     #else
+    shutdown(server_fd, SHUT_RDWR);
     close(server_fd);
     #endif
     platform_cleanup();
@@ -252,6 +255,12 @@ void handle_connection(int client_fd, const char* base_path) {
     
     printf("[DEBUG] Reading request from client_fd=%d...\n", client_fd);
     
+    // Set a receive timeout to prevent hanging
+    struct timeval tv;
+    tv.tv_sec = 10;  // 10 second timeout
+    tv.tv_usec = 0;
+    setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+
     // Read request
     int bytes_read = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
     if (bytes_read <= 0) {
@@ -506,9 +515,9 @@ void send_file(int client_fd, const char* path) {
         return;
     }
     
-    // Send file content using sendfile
+    // Send file content using platform_sendfile
     printf("[DEBUG] Sending file content (%ld bytes)\n", (long)file_stat.st_size);
-    bytes_sent = sendfile(client_fd, fd, &offset, file_stat.st_size);
+    bytes_sent = platform_sendfile(client_fd, fd, &offset, file_stat.st_size);
     if (bytes_sent < 0) {
         printf("[ERROR] Failed to send file content: %d - %s\n", bytes_sent, platform_get_error_string());
     } else {

@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <time.h>
 
+#ifdef __unix__
+#include <sys/types.h>  /* For ssize_t and off_t */
+#endif
+
 /**
  * Platform-independent layer for the HTTP file server.
  * This header defines the interface that platform-specific
@@ -50,6 +54,11 @@
     #ifndef O_BINARY
     #define O_BINARY 0
     #endif
+    
+    /* Include required Unix headers */
+    #include <unistd.h>    /* For standard Unix functions */
+    #include <sys/types.h>  /* For data types */
+    #include <sys/stat.h>   /* For file status and S_ISDIR */
 #endif
 
 /**
@@ -75,7 +84,7 @@ void platform_cleanup(void);
  * @param count The number of bytes to send
  * @return The number of bytes sent, or -1 on error
  */
-ssize_t sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
+ssize_t platform_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 
 /**
  * Callback function for directory listing.
