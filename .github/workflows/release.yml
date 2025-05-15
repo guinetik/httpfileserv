@@ -90,7 +90,7 @@ jobs:
 
       - name: Build
         run: ${{ matrix.build_command }}
-        shell: ${{ matrix.os == 'windows-latest' && 'cmd' || 'bash' }}
+        shell: bash
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
