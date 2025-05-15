@@ -95,12 +95,23 @@ jobs:
           build.bat
           if not exist bin\httpfileserv.exe (echo "Build failed" && exit /b 1)
           copy bin\httpfileserv.exe .\httpfileserv.exe
+          dir
+          dir bin
 
-      - name: Upload binaries
+      - name: Upload binaries (Linux)
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: ${{ matrix.artifact_name }}
+          path: ./httpfileserv
+          retention-days: 1
+
+      - name: Upload binaries (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ./httpfileserv.exe
           retention-days: 1
 
   release:
@@ -114,15 +125,20 @@ jobs:
         with:
           ref: v${{ needs.tag-and-release.outputs.version }}
 
-      - name: Download all artifacts
+      - name: Download artifacts and debug
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+      
+      - name: List downloaded artifacts
+        run: |
+          find artifacts -type f | sort
 
       - name: Rename artifacts for release
         run: |
-          mv artifacts/httpfileserv-linux/httpfileserv artifacts/httpfileserv-linux/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
-          mv artifacts/httpfileserv-windows.exe/httpfileserv.exe artifacts/httpfileserv-windows.exe/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
+          mkdir -p release
+          cp artifacts/httpfileserv-linux/httpfileserv release/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
+          cp artifacts/httpfileserv-windows.exe/httpfileserv.exe release/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
 
       - name: Create Release
         id: create_release
@@ -133,7 +149,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/httpfileserv-linux/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
-            artifacts/httpfileserv-windows.exe/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
+            release/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
+            release/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }}

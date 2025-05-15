@@ -4,6 +4,57 @@
 
 A lightweight C library for serving files over HTTP. Zero dependencies, minimal footprint.
 
+## Demo
+
+![Demo](demo.gif)
+## Features
+
+- Serve files and directory listings over HTTP
+- Sleek and minimalistic design
+- Cross-platform support (Linux, macOS, Windows) with clean separation of platform-specific code
+- Directory listing with file sizes and modification dates
+- Proper MIME type detection for common file types
+- URL decoding for proper handling of special characters in URLs
+- Basic security features (path traversal prevention)
+- Extensive debugging and error handling
+- Simple API for integration into other applications
+- Custom MIME type configuration
+- Request callbacks for logging and monitoring
+- Socket timeout management to prevent stalled connections
+- TCP_NODELAY support for improved responsiveness
+- Keep-alive connections
+
+## Project Structure
+
+```
+httpfileserv/
+├── bin/                  # Compiled binaries
+├── include/              # Header files
+│   ├── httpfileserv.h    # Main header
+│   ├── httpfileserv_lib.h # Library API
+│   ├── http_response.h   # HTTP response handling
+│   ├── platform.h        # Platform abstraction layer
+│   └── utils.h           # Utility functions
+├── src/                  # Source files
+│   ├── httpfileserv.c    # Main server implementation
+│   ├── httpfileserv_lib.c # Library API implementation
+│   ├── http_response.c   # HTTP response handling
+│   ├── template.c        # Template processing
+│   ├── directory_template.html # HTML template for directory listings
+│   ├── utils.c           # Utility functions
+│   └── platform/         # Platform-specific code
+│       ├── platform.c    # Platform selection
+│       ├── windows/      # Windows implementation
+│       │   └── platform_windows.c
+│       └── unix/         # Unix implementation
+│           └── platform_unix.c
+├── obj/                  # Object files (created during build)
+├── build.bat             # Windows build script
+├── Makefile              # Unix/Linux build file
+├── run.bat               # Windows run script
+└── README.md             # This file
+```
+
 ## Motivation
 
 This is my first C project ever. I always felt kind of intimidated by it, but I needed to serve files over HTTP and I thought C was appropriate for the task. This section is for the future-me to document what I learned from this project. I'm sure I'll forget it all.
@@ -66,57 +117,6 @@ The project still has some technical debt. I don't really know how to unit test 
 I didn't want to manage auth with C (seems like a security disaster waiting to happen), so I put this inside an nginx server that has auth. Being able to switch ports was really useful for this setup.
 
 Overall, I'm pretty satisfied with how this turned out. The 181KB executable is doing exactly what I need - serving files over HTTP with minimal overhead. I can access it from my home network or over my private IP anywhere in the world.
-
-## Demo
-
-![Demo](demo.gif)
-## Features
-
-- Serve files and directory listings over HTTP
-- Sleek and minimalistic design
-- Cross-platform support (Linux, macOS, Windows) with clean separation of platform-specific code
-- Directory listing with file sizes and modification dates
-- Proper MIME type detection for common file types
-- URL decoding for proper handling of special characters in URLs
-- Basic security features (path traversal prevention)
-- Extensive debugging and error handling
-- Simple API for integration into other applications
-- Custom MIME type configuration
-- Request callbacks for logging and monitoring
-- Socket timeout management to prevent stalled connections
-- TCP_NODELAY support for improved responsiveness
-- Keep-alive connections
-
-## Project Structure
-
-```
-httpfileserv/
-├── bin/                  # Compiled binaries
-├── include/              # Header files
-│   ├── httpfileserv.h    # Main header
-│   ├── httpfileserv_lib.h # Library API
-│   ├── http_response.h   # HTTP response handling
-│   ├── platform.h        # Platform abstraction layer
-│   └── utils.h           # Utility functions
-├── src/                  # Source files
-│   ├── httpfileserv.c    # Main server implementation
-│   ├── httpfileserv_lib.c # Library API implementation
-│   ├── http_response.c   # HTTP response handling
-│   ├── template.c        # Template processing
-│   ├── directory_template.html # HTML template for directory listings
-│   ├── utils.c           # Utility functions
-│   └── platform/         # Platform-specific code
-│       ├── platform.c    # Platform selection
-│       ├── windows/      # Windows implementation
-│       │   └── platform_windows.c
-│       └── unix/         # Unix implementation
-│           └── platform_unix.c
-├── obj/                  # Object files (created during build)
-├── build.bat             # Windows build script
-├── Makefile              # Unix/Linux build file
-├── run.bat               # Windows run script
-└── README.md             # This file
-```
 
 ## Building
 
