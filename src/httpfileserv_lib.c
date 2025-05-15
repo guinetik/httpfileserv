@@ -1,4 +1,5 @@
 #include "httpfileserv_lib.h"
+#include "httpfileserv.h"
 #include "platform.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +18,7 @@ static int server_running = 0;
 static int server_socket = -1;
 static request_callback user_callback = NULL;
 static char server_base_path[MAX_PATH_SIZE] = {0};
-static int server_port = PORT;
+static int server_port = DEFAULT_PORT;
 
 // Custom MIME type handling
 #define MAX_CUSTOM_MIME_TYPES 50
@@ -38,7 +39,7 @@ int start_server(const char* directory_path, int port) {
     server_base_path[MAX_PATH_SIZE - 1] = '\0';
     
     // Use the provided port or default
-    server_port = (port > 0) ? port : PORT;
+    server_port = (port > 0) ? port : DEFAULT_PORT;
     
     // Initialize platform-specific functionality
     if (platform_init() != 0) {

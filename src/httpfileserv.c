@@ -104,14 +104,28 @@ int main(int argc, char* argv[]) {
     struct sockaddr_in address;
     int addrlen = sizeof(address);
     char* base_path;
+    int port = DEFAULT_PORT;
     
-    // Check if base path is provided
+    // Check command-line arguments
     if (argc < 2) {
-        printf("Usage: %s <directory_path>\n", argv[0]);
+        printf("Usage: %s <directory_path> [port]\n", argv[0]);
+        printf("  directory_path: Directory to serve files from\n");
+        printf("  port: Optional port number (default: %d)\n", DEFAULT_PORT);
         return 1;
     }
     
     base_path = argv[1];
+    
+    // Check if port is provided as an argument
+    if (argc >= 3) {
+        int custom_port = atoi(argv[2]);
+        if (custom_port > 0 && custom_port < 65536) {
+            port = custom_port;
+        } else {
+            printf("Warning: Invalid port number '%s', using default port %d\n", 
+                  argv[2], DEFAULT_PORT);
+        }
+    }
     
     // Initialize platform-specific functionality
     if (platform_init() != 0) {
@@ -137,7 +151,7 @@ int main(int argc, char* argv[]) {
     // Configure address
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(port);
     
     // Bind socket to port
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
@@ -153,7 +167,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
     
-    printf("Server started at http://localhost:%d\n", PORT);
+    printf("Server started at http://localhost:%d\n", port);
     printf("Serving directory: %s\n", base_path);
     
     // Accept and handle connections

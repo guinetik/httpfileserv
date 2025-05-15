@@ -44,7 +44,7 @@ if %ERRORLEVEL% NEQ 0 goto build_error
 echo Build SUCCESSFUL!
 echo Binary created at bin\httpfileserv.exe
 echo.
-echo Run with: run_server.bat [directory_to_serve]
+echo Run with: run.bat [directory_to_serve]
 goto end
 
 :build_error

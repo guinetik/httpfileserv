@@ -28,7 +28,7 @@
 #endif
 
 /* Configuration constants */
-#define PORT 8080
+#define DEFAULT_PORT 8080
 #define BUFFER_SIZE 1024
 #define MAX_PATH_SIZE 1024
 
