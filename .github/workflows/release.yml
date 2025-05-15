@@ -94,8 +94,6 @@ jobs:
         run: |
           build.bat
           if not exist bin\httpfileserv.exe (echo "Build failed" && exit /b 1)
-          copy bin\httpfileserv.exe .\httpfileserv.exe
-          dir
           dir bin
 
       - name: Upload binaries (Linux)
@@ -103,7 +101,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: ./httpfileserv
+          path: bin/httpfileserv
           retention-days: 1
 
       - name: Upload binaries (Windows)
@@ -111,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: ./httpfileserv.exe
+          path: bin/httpfileserv.exe
           retention-days: 1
 
   release:
