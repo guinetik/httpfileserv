@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory: {{DIRECTORY_PATH}}</title>
+    <style>
+        :root {
+            --bg-color: #f9f9f9;
+            --container-bg: #fff;
+            --text-color: #333;
+            --header-color: #444;
+            --border-color: #eee;
+            --hover-color: #f8f8f8;
+            --th-bg: #f5f5f5;
+            --th-color: #666;
+            --link-color: #2563eb;
+            --icon-color: #666;
+            --footer-color: #999;
+        }
+        
+        .dark-mode {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --header-color: #f0f0f0;
+            --border-color: #333;
+            --hover-color: #252525;
+            --th-bg: #252525;
+            --th-color: #aaa;
+            --link-color: #90caf9;
+            --icon-color: #aaa;
+            --footer-color: #777;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            transition: background-color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        h1 {
+            color: var(--header-color);
+            font-size: 24px;
+            margin: 0;
+        }
+        
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            background-color: var(--hover-color);
+        }
+        
+        .theme-toggle:hover {
+            opacity: 0.9;
+        }
+        
+        .theme-icon {
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px 15px;
+            background-color: var(--th-bg);
+            font-weight: 500;
+            color: var(--th-color);
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+        
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .parent {
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .icon {
+            margin-right: 5px;
+            color: var(--icon-color);
+        }
+        
+        .size {
+            color: var(--th-color);
+            white-space: nowrap;
+        }
+        
+        .date {
+            color: var(--th-color);
+            white-space: nowrap;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--footer-color);
+            text-align: center;
+        }
+    </style>
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            updateToggleText();
+        }
+        
+        function updateToggleText() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) toggle.innerHTML = isDark ? 
+                '<span class="theme-icon">☀️</span> Light Mode' : 
+                '<span class="theme-icon">🌙</span> Dark Mode';
+        }
+        
+        window.onload = function() {
+            const prefersDark = window.matchMedia && 
+                window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const storedTheme = localStorage.getItem('darkMode');
+            
+            if (storedTheme === 'true') {
+                document.body.classList.add('dark-mode');
+            } else if (storedTheme === null && prefersDark) {
+                document.body.classList.add('dark-mode');
+            }
+            
+            updateToggleText();
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Directory: {{DIRECTORY_PATH}}</h1>
+            <button id="theme-toggle" class="theme-toggle" type="button">
+                <span class="theme-icon">🌙</span> Dark Mode
+            </button>
+        </div>
+        
+        {{PARENT_DIRECTORY_LINK}}
+        
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Last Modified</th>
+            </tr>
+            {{DIRECTORY_ENTRIES}}
+        </table>
+        
+        <div class="footer">Powered by httpfileserv</div>
+    </div>
+</body>
+</html> 

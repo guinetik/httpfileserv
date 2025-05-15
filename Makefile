@@ -2,73 +2,59 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -std=c99 -I./include
+CFLAGS = -Wall -Wextra -O2
+LDFLAGS =
 
-# Target binary
-TARGET = httpfileserv
-
-# Directories
-SRC_DIR = src
-INCLUDE_DIR = include
-OBJ_DIR = obj
-BIN_DIR = bin
-
-# Object files
-OBJS = $(OBJ_DIR)/httpfileserv.o \
-       $(OBJ_DIR)/utils.o \
-       $(OBJ_DIR)/httpfileserv_lib.o \
-       $(OBJ_DIR)/http_response.o
-
-# Platform-specific objects
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-    PLATFORM_OBJ = $(OBJ_DIR)/platform/unix/platform_unix.o
-    PLATFORM_DIR = $(SRC_DIR)/platform/unix
-else ifeq ($(UNAME_S),Darwin)  # macOS
-    PLATFORM_OBJ = $(OBJ_DIR)/platform/unix/platform_unix.o
-    PLATFORM_DIR = $(SRC_DIR)/platform/unix
-else ifeq ($(OS),Windows_NT)
-    PLATFORM_OBJ = $(OBJ_DIR)/platform/windows/platform_windows.o
-    PLATFORM_DIR = $(SRC_DIR)/platform/windows
-    CFLAGS += -D_WIN32
-    LIBS = -lws2_32
+# Platform-specific settings
+ifeq ($(OS),Windows_NT)
+    # Windows settings
+    PLATFORM_SRC = src/platform/windows/platform_win.c
+    PLATFORM_OBJ = obj/platform/windows/platform_win.o
+    LDFLAGS += -lws2_32
+    EXE = bin/httpfileserv.exe
+    MKDIR = mkdir -p
+    RM = rm -f
 else
-    PLATFORM_OBJ = $(OBJ_DIR)/platform/unix/platform_unix.o
-    PLATFORM_DIR = $(SRC_DIR)/platform/unix
+    # Unix settings
+    PLATFORM_SRC = src/platform/unix/platform_unix.c
+    PLATFORM_OBJ = obj/platform/unix/platform_unix.o
+    EXE = bin/httpfileserv
+    MKDIR = mkdir -p
+    RM = rm -f
 endif
 
-# Create directories
-$(shell mkdir -p $(BIN_DIR) $(OBJ_DIR) $(OBJ_DIR)/platform/unix $(OBJ_DIR)/platform/windows)
+# Source files
+SRC = src/httpfileserv.c src/http_response.c src/template.c
+OBJ = $(SRC:src/%.c=obj/%.o)
+
+# Include directories
+INCLUDES = -Isrc
 
 # Default target
-all: $(BIN_DIR)/$(TARGET)
+all: $(EXE)
 
-# Linking
-$(BIN_DIR)/$(TARGET): $(OBJS) $(PLATFORM_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+# Link the executable
+$(EXE): $(OBJ) $(PLATFORM_OBJ)
+	$(MKDIR) bin
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-# Compiling main source files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compile object files
+obj/%.o: src/%.c
+	$(MKDIR) $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-# Compiling platform-specific files
-$(OBJ_DIR)/platform/unix/platform_unix.o: $(SRC_DIR)/platform/unix/platform_unix.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compile platform-specific object files
+$(PLATFORM_OBJ): $(PLATFORM_SRC)
+	$(MKDIR) $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(OBJ_DIR)/platform/windows/platform_windows.o: $(SRC_DIR)/platform/windows/platform_windows.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Clean
+# Clean up
 clean:
-	rm -rf $(OBJ_DIR)/* $(BIN_DIR)/$(TARGET)
+	$(RM) $(OBJ) $(PLATFORM_OBJ) $(EXE)
 
-# Install (Unix-like systems)
-install: $(BIN_DIR)/$(TARGET)
-	install -m 755 $(BIN_DIR)/$(TARGET) /usr/local/bin/
-
-# Running
-run: $(BIN_DIR)/$(TARGET)
-	$(BIN_DIR)/$(TARGET) ./
+# Run the server
+run: $(EXE)
+	$(EXE) .
 
 # Help
 help:
@@ -77,17 +63,15 @@ help:
 	@echo "Targets:"
 	@echo "  all     - Build the executable"
 	@echo "  clean   - Remove the executable"
-	@echo "  install - Install the executable to /usr/local/bin"
 	@echo "  run     - Run the executable serving the current directory"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make              - Build the executable"
 	@echo "  make clean        - Remove the executable"
-	@echo "  make install      - Install the executable"
 	@echo "  make run          - Run the executable"
 	@echo ""
 	@echo "Runtime usage:"
-	@echo "  $(TARGET) <directory_path>    - Serve the specified directory"
+	@echo "  $(EXE) <directory_path>    - Serve the specified directory"
 
 # Phony targets
-.PHONY: all clean install run help
+.PHONY: all clean run help

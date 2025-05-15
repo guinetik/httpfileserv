@@ -57,4 +57,8 @@ void send_directory_listing(int client_fd, const char* path, const char* url_pat
  */
 void send_file(int client_fd, const char* path);
 
+// Template-related functions
+char* load_template(const char* template_path);
+char* process_template(const char* template_content, const char* url_path, const char* entries, int has_parent);
+
 #endif /* HTTPFILESERV_H */

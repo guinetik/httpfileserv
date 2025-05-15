@@ -33,8 +33,12 @@ echo - http_response.c
 cl /nologo /W3 /O2 /I"include" /D_CRT_SECURE_NO_WARNINGS /c /Foobj\http_response.obj src\http_response.c
 if %ERRORLEVEL% NEQ 0 goto build_error
 
+echo - template.c
+cl /nologo /W3 /O2 /I"include" /D_CRT_SECURE_NO_WARNINGS /c /Foobj\template.obj src\template.c
+if %ERRORLEVEL% NEQ 0 goto build_error
+
 echo Linking...
-link /NOLOGO /OUT:bin\httpfileserv.exe obj\httpfileserv.obj obj\utils.obj obj\httpfileserv_lib.obj obj\http_response.obj obj\platform\windows\platform_windows.obj ws2_32.lib
+link /NOLOGO /OUT:bin\httpfileserv.exe obj\httpfileserv.obj obj\utils.obj obj\httpfileserv_lib.obj obj\http_response.obj obj\template.obj obj\platform\windows\platform_windows.obj ws2_32.lib
 if %ERRORLEVEL% NEQ 0 goto build_error
 
 echo Build SUCCESSFUL!

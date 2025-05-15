@@ -26,24 +26,24 @@
  */
 typedef struct {
     int client_fd;           /**< Client socket file descriptor */
-    char* listing;           /**< Buffer containing the HTML listing */
+    char* entries;           /**< Buffer containing the HTML entries */
     const char* url_path;    /**< URL path being listed */
-    size_t listing_size;     /**< Current size of the listing content */
-    size_t listing_capacity; /**< Total capacity of the listing buffer */
+    size_t entries_size;     /**< Current size of the entries content */
+    size_t entries_capacity; /**< Total capacity of the entries buffer */
 } dir_listing_data;
 
 /**
  * @brief Callback function for processing directory entries during directory listing
  *
  * This function is called by platform_list_directory for each entry in a directory.
- * It formats the entry as HTML and appends it to the directory listing being built.
+ * It formats the entry as an HTML table row and appends it to the entries buffer.
  * The function handles both files and directories with appropriate styling and icons.
  *
  * @param name The name of the directory entry (file or subdirectory)
  * @param is_dir Flag indicating if the entry is a directory (1) or a file (0)
  * @param size Size of the file in bytes (ignored for directories)
  * @param mtime Last modification time of the entry
- * @param user_data Pointer to a dir_listing_data structure containing the listing buffer
+ * @param user_data Pointer to a dir_listing_data structure containing the entries buffer
  *
  * @return 0 on success to continue listing, 1 on error to stop listing
  */
@@ -82,18 +82,18 @@ int dir_listing_callback(const char* name, int is_dir, size_t size, time_t mtime
     
     // Check if we need to resize the buffer
     size_t entry_len = strlen(entry_html);
-    if (data->listing_size + entry_len + 1 > data->listing_capacity) {
-        data->listing_capacity = data->listing_capacity * 2 + entry_len;
-        char* new_listing = realloc(data->listing, data->listing_capacity);
-        if (!new_listing) {
+    if (data->entries_size + entry_len + 1 > data->entries_capacity) {
+        data->entries_capacity = data->entries_capacity * 2 + entry_len;
+        char* new_entries = realloc(data->entries, data->entries_capacity);
+        if (!new_entries) {
             return 1; // Error, stop listing
         }
-        data->listing = new_listing;
+        data->entries = new_entries;
     }
     
-    // Append to the listing
-    strcat(data->listing, entry_html);
-    data->listing_size += entry_len;
+    // Append to the entries
+    strcat(data->entries, entry_html);
+    data->entries_size += entry_len;
     
     return 0; // Continue listing
 }
@@ -343,112 +343,77 @@ void send_directory_listing(int client_fd, const char* path, const char* url_pat
     
     printf("[DEBUG] Preparing directory listing for '%s'\n", path);
     
-    // Initialize the listing buffer
+    // Initialize the entries buffer
     dir_listing_data data;
     data.client_fd = client_fd;
     data.url_path = url_path;
-    data.listing_capacity = BUFFER_SIZE * 16;
-    data.listing = malloc(data.listing_capacity);
-    data.listing_size = 0;
+    data.entries_capacity = BUFFER_SIZE * 16;
+    data.entries = malloc(data.entries_capacity);
+    data.entries_size = 0;
     
-    if (!data.listing) {
+    if (!data.entries) {
         printf("[ERROR] Failed to allocate memory for directory listing\n");
         send_500(client_fd);
         return;
     }
     
-    printf("[DEBUG] Building HTML for directory listing\n");
-    
-    // Initialize with HTML header - modernized version
-    strcpy(data.listing, "");
-    strcat(data.listing, "<!DOCTYPE html>");
-    strcat(data.listing, "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-    strcat(data.listing, "<title>Directory: ");
-    strcat(data.listing, url_path);
-    strcat(data.listing, "</title>");
-    strcat(data.listing, "<style>");
-    strcat(data.listing, ":root{--bg-color:#f9f9f9;--container-bg:#fff;--text-color:#333;--header-color:#444;--border-color:#eee;--hover-color:#f8f8f8;--th-bg:#f5f5f5;--th-color:#666;--link-color:#2563eb;--icon-color:#666;--footer-color:#999;}");
-    strcat(data.listing, ".dark-mode{--bg-color:#121212;--container-bg:#1e1e1e;--text-color:#e0e0e0;--header-color:#f0f0f0;--border-color:#333;--hover-color:#252525;--th-bg:#252525;--th-color:#aaa;--link-color:#90caf9;--icon-color:#aaa;--footer-color:#777;}");
-    strcat(data.listing, "body{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;margin:0;padding:20px;color:var(--text-color);background-color:var(--bg-color);transition:background-color 0.3s ease;}");
-    strcat(data.listing, ".container{max-width:1000px;margin:0 auto;background-color:var(--container-bg);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.05);padding:20px;transition:background-color 0.3s ease;}");
-    strcat(data.listing, ".header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--border-color);}");
-    strcat(data.listing, "h1{color:var(--header-color);font-size:24px;margin:0;}");
-    strcat(data.listing, ".theme-toggle{background:none;border:none;cursor:pointer;display:flex;align-items:center;font-size:14px;color:var(--text-color);padding:5px 10px;border-radius:4px;background-color:var(--hover-color);}");
-    strcat(data.listing, ".theme-toggle:hover{opacity:0.9;}");
-    strcat(data.listing, ".theme-icon{font-size:16px;margin-right:5px;}");
-    strcat(data.listing, "table{width:100%;border-collapse:collapse;}");
-    strcat(data.listing, "th{text-align:left;padding:12px 15px;background-color:var(--th-bg);font-weight:500;color:var(--th-color);border-bottom:2px solid var(--border-color);}");
-    strcat(data.listing, "td{padding:10px 15px;border-bottom:1px solid var(--border-color);}");
-    strcat(data.listing, "tr:hover{background-color:var(--hover-color);}");
-    strcat(data.listing, "a{color:var(--link-color);text-decoration:none;}");
-    strcat(data.listing, "a:hover{text-decoration:underline;}");
-    strcat(data.listing, ".parent{margin-bottom:15px;display:inline-block;}");
-    strcat(data.listing, ".icon{margin-right:5px;color:var(--icon-color);}");
-    strcat(data.listing, ".size{color:var(--th-color);white-space:nowrap;}");
-    strcat(data.listing, ".date{color:var(--th-color);white-space:nowrap;}");
-    strcat(data.listing, ".footer{margin-top:20px;font-size:12px;color:var(--footer-color);text-align:center;}");
-    strcat(data.listing, "</style>");
-    strcat(data.listing, "<script>");
-    strcat(data.listing, "function toggleTheme(){");
-    strcat(data.listing, "  document.body.classList.toggle('dark-mode');");
-    strcat(data.listing, "  localStorage.setItem('darkMode',document.body.classList.contains('dark-mode'));");
-    strcat(data.listing, "  updateToggleText();");
-    strcat(data.listing, "}");
-    strcat(data.listing, "function updateToggleText(){");
-    strcat(data.listing, "  const isDark=document.body.classList.contains('dark-mode');");
-    strcat(data.listing, "  const toggle=document.getElementById('theme-toggle');");
-    strcat(data.listing, "  if(toggle) toggle.innerHTML=isDark?'<span class=\"theme-icon\">☀️</span> Light Mode':'<span class=\"theme-icon\">🌙</span> Dark Mode';");
-    strcat(data.listing, "}");
-    strcat(data.listing, "window.onload=function(){");
-    strcat(data.listing, "  const prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;");
-    strcat(data.listing, "  const storedTheme=localStorage.getItem('darkMode');");
-    strcat(data.listing, "  if(storedTheme==='true'){");
-    strcat(data.listing, "    document.body.classList.add('dark-mode');");
-    strcat(data.listing, "  }else if(storedTheme===null&&prefersDark){");
-    strcat(data.listing, "    document.body.classList.add('dark-mode');");
-    strcat(data.listing, "  }");
-    strcat(data.listing, "  updateToggleText();");
-    strcat(data.listing, "  document.getElementById('theme-toggle').addEventListener('click',toggleTheme);");
-    strcat(data.listing, "};");
-    strcat(data.listing, "</script>");
-    strcat(data.listing, "</head>");
-    strcat(data.listing, "<body>");
-    strcat(data.listing, "<div class=\"container\">");
-    strcat(data.listing, "<div class=\"header\">");
-    strcat(data.listing, "<h1>Directory: ");
-    strcat(data.listing, url_path);
-    strcat(data.listing, "</h1>");
-    strcat(data.listing, "<button id=\"theme-toggle\" class=\"theme-toggle\" type=\"button\"><span class=\"theme-icon\">🌙</span> Dark Mode</button>");
-    strcat(data.listing, "</div>");
-    
-    // Add parent directory link if not at root
-    if (strcmp(url_path, "/") != 0) {
-        strcat(data.listing, "<div class=\"parent\"><a href=\"..\"><span class=\"icon\">⬆️</span> Parent Directory</a></div>");
-    }
-    
-    strcat(data.listing, "<table><tr><th>Name</th><th>Size</th><th>Last Modified</th></tr>");
-    
-    data.listing_size = strlen(data.listing);
+    // Initialize with empty string
+    strcpy(data.entries, "");
     
     printf("[DEBUG] Calling platform_list_directory for '%s'\n", path);
     
     // List directory contents
     if (platform_list_directory(path, dir_listing_callback, &data) != 0) {
         printf("[ERROR] Failed to list directory: '%s'\n", path);
-        free(data.listing);
+        free(data.entries);
         send_500(client_fd);
         return;
     }
     
     printf("[DEBUG] Directory listing retrieved successfully\n");
     
-    // Finish HTML
-    strcat(data.listing, "</table>");
-    strcat(data.listing, "<div class=\"footer\">Powered by httpfileserv</div>");
-    strcat(data.listing, "</div></body></html>");
-    data.listing_size = strlen(data.listing);
+    // Load the template file
+    char template_path[MAX_PATH_SIZE];
+    snprintf(template_path, MAX_PATH_SIZE, "src/directory_template.html");
     
-    printf("[DEBUG] Generated %zu bytes of HTML\n", data.listing_size);
+    char* template_content = load_template(template_path);
+    if (!template_content) {
+        printf("[ERROR] Failed to load template file: %s\n", template_path);
+        free(data.entries);
+        send_500(client_fd);
+        return;
+    }
+    
+    // Process the template
+    int has_parent = strcmp(url_path, "/") != 0;
+    
+    // Make sure we display the directory path correctly
+    char display_path[MAX_PATH_SIZE];
+    if (strcmp(url_path, "/") == 0) {
+        strcpy(display_path, "/");
+    } else {
+        // Remove the leading slash for display if present
+        const char* display_url = url_path;
+        if (display_url[0] == '/') {
+            display_url++;
+        }
+        snprintf(display_path, MAX_PATH_SIZE, "%s", display_url);
+    }
+    
+    printf("[DEBUG] Using display path: '%s'\n", display_path);
+    
+    char* html_content = process_template(template_content, display_path, data.entries, has_parent);
+    free(template_content);
+    free(data.entries);
+    
+    if (!html_content) {
+        printf("[ERROR] Failed to process template\n");
+        send_500(client_fd);
+        return;
+    }
+    
+    size_t content_length = strlen(html_content);
+    printf("[DEBUG] Generated %zu bytes of HTML\n", content_length);
     
     // Send HTTP response header
     snprintf(response, BUFFER_SIZE, 
@@ -456,25 +421,25 @@ void send_directory_listing(int client_fd, const char* path, const char* url_pat
              "Content-Type: text/html\r\n"
              "Content-Length: %ld\r\n"
              "Connection: close\r\n\r\n", 
-             (long)data.listing_size);
+             (long)content_length);
     
     printf("[DEBUG] Sending HTTP header (%zu bytes)\n", strlen(response));
     int bytes_sent = send(client_fd, response, strlen(response), 0);
     if (bytes_sent < 0) {
         printf("[ERROR] Failed to send HTTP header: %d - %s\n", bytes_sent, platform_get_error_string());
-        free(data.listing);
+        free(html_content);
         return;
     }
     
-    printf("[DEBUG] Sending directory listing HTML (%zu bytes)\n", data.listing_size);
-    bytes_sent = send(client_fd, data.listing, data.listing_size, 0);
+    printf("[DEBUG] Sending directory listing HTML (%zu bytes)\n", content_length);
+    bytes_sent = send(client_fd, html_content, content_length, 0);
     if (bytes_sent < 0) {
         printf("[ERROR] Failed to send HTML content: %d - %s\n", bytes_sent, platform_get_error_string());
     } else {
         printf("[DEBUG] Successfully sent %d bytes of HTML\n", bytes_sent);
     }
     
-    free(data.listing);
+    free(html_content);
     printf("[DEBUG] Directory listing complete\n");
 }
 
