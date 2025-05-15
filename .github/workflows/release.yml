@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  tag-and-release:
+    name: Tag and Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+      tag_created: ${{ steps.tag.outputs.TAG_CREATED }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_GITHUB }}
+
+      - name: Extract version from VERSION file
+        id: get_version
+        run: |
+          VERSION=$(cat VERSION)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          TAG_EXISTS=$(git tag -l "v${{ steps.get_version.outputs.VERSION }}")
+          if [ -z "$TAG_EXISTS" ]; then
+            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "Tag does not exist, will create it"
+          else
+            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "Tag already exists, skipping creation"
+          fi
+
+      - name: Create and push tag
+        id: tag
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          echo "Creating tag v${{ steps.get_version.outputs.VERSION }}"
+          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
+          git push origin "v${{ steps.get_version.outputs.VERSION }}"
+          echo "TAG_CREATED=true" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }}
+
+  build:
+    name: Build
+    needs: tag-and-release
+    if: needs.tag-and-release.outputs.tag_created == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: httpfileserv
+            asset_name: httpfileserv-linux
+            build_command: |
+              make
+              cp bin/httpfileserv ./httpfileserv
+          - os: windows-latest
+            artifact_name: httpfileserv.exe
+            asset_name: httpfileserv-windows.exe
+            build_command: |
+              call build.bat
+              copy bin\httpfileserv.exe .\httpfileserv.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.tag-and-release.outputs.version }}
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc make
+
+      - name: Setup Windows build environment
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build
+        run: ${{ matrix.build_command }}
+        shell: ${{ matrix.os == 'windows-latest' && 'cmd' || 'bash' }}
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: [tag-and-release, build]
+    if: needs.tag-and-release.outputs.tag_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.tag-and-release.outputs.version }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Rename artifacts for release
+        run: |
+          mv artifacts/httpfileserv-linux/httpfileserv artifacts/httpfileserv-linux/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
+          mv artifacts/httpfileserv-windows.exe/httpfileserv.exe artifacts/httpfileserv-windows.exe/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.tag-and-release.outputs.version }}
+          name: httpfileserv v${{ needs.tag-and-release.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/httpfileserv-linux/httpfileserv-linux-${{ needs.tag-and-release.outputs.version }}
+            artifacts/httpfileserv-windows.exe/httpfileserv-windows-${{ needs.tag-and-release.outputs.version }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_GITHUB }}
